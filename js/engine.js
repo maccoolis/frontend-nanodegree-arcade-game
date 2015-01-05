@@ -91,11 +91,11 @@ var Engine = (function(global) {
      * render methods.
      */
     function updateEntities(dt) {
-        /* CP
+        
         allEnemies.forEach(function(enemy) {
             enemy.update(dt);
         });
-        */
+        
         player.update();
     }
 
@@ -109,12 +109,16 @@ var Engine = (function(global) {
         /* This array holds the relative URL to the image used
          * for that particular row of the game level.
          */
+        
+        // Clear the whole canvas first - mainly required if player icon goes outside the board 
+        ctx.clearRect(0, 0, canvas.width, canvas.height); 
+
         var rowImages = [
-                'images/water-block.png',   // Top row is water
-                'images/stone-block.png',   // Row 1 of 3 of stone
-                'images/stone-block.png',   // Row 2 of 3 of stone
-                'images/stone-block.png',   // Row 3 of 3 of stone
-                'images/grass-block.png',   // Row 1 of 2 of grass
+                'images/stone-block.png',   // Top row is water
+                'images/water-block.png',   // Row 1 of 3 of stone
+                'images/water-block.png',   // Row 2 of 3 of stone
+                'images/water-block.png',   // Row 3 of 3 of stone
+                'images/water-block.png',   // Row 1 of 2 of grass
                 'images/grass-block.png'    // Row 2 of 2 of grass
             ],
             numRows = 6,
@@ -150,12 +154,11 @@ var Engine = (function(global) {
         /* Loop through all of the objects within the allEnemies array and call
          * the render function you have defined.
          */
-        /* CP
+        
         allEnemies.forEach(function(enemy) {
             enemy.render();
         });
-        */
-
+        
         player.render();
         
     }
