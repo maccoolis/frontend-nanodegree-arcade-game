@@ -57,7 +57,7 @@ var Engine = (function(global) {
          * function again as soon as the browser is able to draw another frame.
          */
         win.requestAnimationFrame(main);
-    };
+    }
 
     /* This function does some initial setup that should only occur once,
      * particularly setting the lastTime variable that is required for the
@@ -80,7 +80,7 @@ var Engine = (function(global) {
      */
     function update(dt) {
         updateEntities(dt);
-        // checkCollisions();
+        // CP checkCollisions();
     }
 
     /* This is called by the update function  and loops through all of the
@@ -91,9 +91,11 @@ var Engine = (function(global) {
      * render methods.
      */
     function updateEntities(dt) {
+        /* CP
         allEnemies.forEach(function(enemy) {
             enemy.update(dt);
         });
+        */
         player.update();
     }
 
@@ -148,11 +150,14 @@ var Engine = (function(global) {
         /* Loop through all of the objects within the allEnemies array and call
          * the render function you have defined.
          */
+        /* CP
         allEnemies.forEach(function(enemy) {
             enemy.render();
         });
+        */
 
         player.render();
+        
     }
 
     /* This function does nothing but it could have been a good place to
@@ -160,7 +165,9 @@ var Engine = (function(global) {
      * those sorts of things. It's only called once by the init() method.
      */
     function reset() {
-        // noop
+
+        // This sets up the game for first time use
+        gameStartup ();     
     }
 
     /* Go ahead and load all of the images we know we're going to need to
