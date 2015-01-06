@@ -25,7 +25,7 @@ var Engine = (function(global) {
         ctx = canvas.getContext('2d'),
         lastTime;
 
-    canvas.width = 505;
+    canvas.width = 606;
     canvas.height = 606;
     doc.body.appendChild(canvas);
 
@@ -80,7 +80,6 @@ var Engine = (function(global) {
      */
     function update(dt) {
         updateEntities(dt);
-        //checkCollisions(player);
     }
 
     /* This is called by the update function  and loops through all of the
@@ -122,7 +121,7 @@ var Engine = (function(global) {
                 'images/grass-block.png'    // Row 2 of 2 of grass
             ],
             numRows = 6,
-            numCols = 5,
+            numCols = 6,
             row, col;
 
         /* Loop through the number of rows and columns we've defined above
@@ -183,7 +182,8 @@ var Engine = (function(global) {
         'images/grass-block.png',
         'images/enemy-bug.png',
         'images/char-boy.png',
-        'images/char-boy-small.png'
+        'images/char-boy-small.png',
+        'images/rock.png'
     ]);
     Resources.onReady(init);
 

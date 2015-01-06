@@ -1,20 +1,20 @@
 //Global variables and constants
 
 var cHeight = 606;                     // Canvas height
-var cWidth = 505;                      // Canvas width
+var cWidth = 606;                      // Canvas width
 var nRows = 6;                         // No. of rows on canvas
-var nCols = 5;                         // No. of cols on canvas
+var nCols = 6;                         // No. of cols on canvas
 var rowHeight = cHeight/nRows;         // Height of each row
 var colWidth = cWidth/nCols;           // Width of each col
 var eRowStarts = [61,145,228,310]      // Pixel y coord enemy starting points for each row of water
-var speedMove = 1;                     // Determines the speed of movement of player, lower the number the faster the speed 
+var speedMove = 2;                     // Determines the speed of movement of player, lower the number the faster the speed 
 var minX = 0;                          // Min X coord allowed for player
 var maxX = (colWidth*(nCols-1));       // MaX X coord allowed for player
 var minY = -5 * speedMove;             // Min Y coord allowed for player
 var maxY = (rowHeight*(nRows-2));      // Min Y coord allowed for player
 var offscreenX = -200;                 // This is the x coord used to start the enemies spawning so they spawn off screen at different pts
-var eSpeed = 200;                      // The speed of the enemies 
-var eQuantity = 5;                     // The number of enemies
+var eSpeed = 100;                      // The speed of the enemies 
+var eQuantity = 8;                     // The number of enemies
 
 var ePngHeight = 171;                  // The height of the enemy png for collision purposes 
 var ePngWidth = 101;                   // The width of the enemy png for collision purposes
@@ -22,16 +22,18 @@ var eRightPad = 101;                   // Pixels to the actual right hand side o
 var eBottomPad = 27;                   // Pixels at the bottom of enemy bug that is blank for collision purposes
 var eTopPad = 93;                      // Pixels from bottom to top of enemy bug that is blank for collision purposes
 
+var pColMove = cWidth/nCols;           // Amount player moves left and right
+var pRowMove = 83;                     // Amount player moves top and bottom
 var pPngHeight = 171;                  // The height of the player png for collision purposes 
 var pPngWidth = 101;                   // The width of the player png for collision purposes
 var pRightPad = 82;                    // Pixels to the actual right hand side of the player in the png for collision purposes
 var pBottomPad = 34;                   // Pixels at the bottom of player that is blank for collision purposes
 var pTopPad = 107;                     // Pixels from bottom to top of player that is blank for collision purposes
 
-
 var collisionTolerance = 0.01;         // Percentage collision tolerance
 var xPlayerStart = colWidth*2;         // x coord starting pos for Player
 var yPlayerStart = (rowHeight*4)       // y coord starting pos for Player
+var overlap = false;                   // Boolean check on a collision 
 
 // Enemies stuff started -------------------------------------------------------------------------------------------
 
@@ -97,27 +99,27 @@ Player.prototype.update = function () {
     switch (this.keyPress) {
         case 'up': 
            if (this.y > minY){
-              this.y = this.y-((cHeight/nRows)/speedMove);
+              this.y = this.y-(pRowMove/speedMove);
            };
         break;
         case 'down':
            if (this.y < maxY){
-              this.y = this.y+((cHeight/nRows)/speedMove);
+              this.y = this.y+(pRowMove/speedMove);
            };
         break;
         case 'left':
             if(this.x > minX) {
-              this.x = this.x-((cWidth/nCols)/speedMove);
+              this.x = this.x-(pColMove/speedMove);
            };
         break;
         case 'right':
            if(this.x < maxX) {
-              this.x = this.x+((cWidth/nCols)/speedMove);
+              this.x = this.x+(pColMove/speedMove);
            };
         break;
 
     };
-    
+
     // Reset the keypress so the update doesn't keep moving the player
     this.keyPress = '';
 };
@@ -127,6 +129,8 @@ Player.prototype.render = function () {
 
      // Draw the player sprite
      ctx.drawImage(Resources.get(this.sprite), this.x, this.y);
+
+     // Check for collisions as long as there hasn't already been one
      checkCollisions(player);
 };
 
@@ -149,9 +153,9 @@ function checkCollisions(player) {
         var eObj = allEnemies[i];
         eX.push(eObj['x']);
         eY.push(eObj['y']);
-        //console.log ('Enemy ' + i + ': ' + eX[i] + ':' + eY[i] );
+        
     };
-    //console.log ('Player: ' + pX + ':' + pY);
+    
     // Now let's check for a collision
     // Get coords for the player sprite
     var pLeft = pX;
@@ -170,10 +174,14 @@ function checkCollisions(player) {
             (eBottom - eBottomPad) > (pBottom - pTopPad) &&      // bottom of enemy top of player
             (eBottom - eTopPad) < (pBottom- pBottomPad) ) {      // top of enemy bottom of player
             // Collision detected
-            var overlap = true;
+            overlap = true;
         };
         
         if (overlap) {
+            player.sprite = 'images/rock.png';
+            ctx.drawImage(Resources.get(player.sprite), 200, 100);
+            pauseGame(1000, player);
+
             gameStartup();            
         }
     }
@@ -211,10 +219,18 @@ function gameStartup() {
 
     allEnemies = [];
     player = new Player;
+    overlap = false;
      for (i=0; i <= eQuantity-1; i++) {
         allEnemies.push(new Enemy);
     };
 };
+
+// Creates a pause in the game to allow visuals to be shown
+function pauseGame(ms, player) {
+    
+    ms += new Date().getTime();
+    while (new Date() < ms){}
+} 
 
 /* unused so far
 function getCol(spriteX){
