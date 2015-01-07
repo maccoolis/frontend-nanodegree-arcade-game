@@ -7,14 +7,14 @@ var nCols = 6;                         // No. of cols on canvas
 var rowHeight = cHeight/nRows;         // Height of each row
 var colWidth = cWidth/nCols;           // Width of each col
 var eRowStarts = [61,145,228,310]      // Pixel y coord enemy starting points for each row of water
-var speedMove = 2;                     // Determines the speed of movement of player, lower the number the faster the speed 
+var eOffStart = [-101,-202,-303,-404]; // Off screen coords for enemy starting positions
+var speedMove = 2;                     // Default speed of movement of player, lower the number the faster the speed 
 var minX = 0;                          // Min X coord allowed for player
 var maxX = (colWidth*(nCols-1));       // MaX X coord allowed for player
 var minY = -5 * speedMove;             // Min Y coord allowed for player
 var maxY = (rowHeight*(nRows-2));      // Min Y coord allowed for player
-var offscreenX = -200;                 // This is the x coord used to start the enemies spawning so they spawn off screen at different pts
-var eSpeed = 100;                      // The speed of the enemies 
-var eQuantity = 8;                     // The number of enemies
+var eSpeed = 100;                       // The speed of the enemies default number
+var eQuantity = 5;                    // The number of enemies default number
 
 var ePngHeight = 171;                  // The height of the enemy png for collision purposes 
 var ePngWidth = 101;                   // The width of the enemy png for collision purposes
@@ -29,11 +29,20 @@ var pPngWidth = 101;                   // The width of the player png for collis
 var pRightPad = 82;                    // Pixels to the actual right hand side of the player in the png for collision purposes
 var pBottomPad = 34;                   // Pixels at the bottom of player that is blank for collision purposes
 var pTopPad = 107;                     // Pixels from bottom to top of player that is blank for collision purposes
+var chosenSprite ='';                  // Sprite chosen for player
 
-var collisionTolerance = 0.01;         // Percentage collision tolerance
 var xPlayerStart = colWidth*2;         // x coord starting pos for Player
 var yPlayerStart = (rowHeight*4)       // y coord starting pos for Player
 var overlap = false;                   // Boolean check on a collision 
+
+var tLives = 5;                        // Maximum number of lives
+var resetCrossed = 0;                  // A reset variable to make sure crossings are only counted once 
+var moveScore = 1;                     // Base score for every positive move by the player, changes with game difficulty
+
+var gameSet = 0;                       // 0=load screen, 1=playing game, 2=close screen
+var spriteCoord = 101;                 // Default x coord for selecting a sprite on the selection screen
+var difficultyCoord = 101;              // Default x coord for selecting a difficulty on the selection screen
+var difficultySetting = 1;              // Default difficulty setting
 
 // Enemies stuff started -------------------------------------------------------------------------------------------
 
@@ -44,13 +53,25 @@ var Enemy = function() {
 
     // The image/sprite for our enemies, this uses
     // a helper we've provided to easily load images
-    this.sprite = 'images/enemy-bug.png';
+    // Uses a random generator of 3 different coloured enemies
+    var rndEnemy = Math.floor((Math.random()*3))+1;
+    switch (true){
+        case (rndEnemy==1):
+            this.sprite = 'images/enemy-bug-red.png';
+        break;
+        case (rndEnemy==2):
+            this.sprite = 'images/enemy-bug-blue.png';
+        break;
+        case (rndEnemy==3):
+            this.sprite = 'images/enemy-bug-green.png';
+        break;
+    };
 
     // Get a random row for the enemy to start on
-    // Would prefer to use a random row based on variable heights but....(rowHeight) * (Math.floor((Math.random() * 3) + 1));
-    this.y = eRowStarts[Math.floor((Math.random() * 4))];  
+    this.y = eRowStarts[Math.floor((Math.random()*4))];
+
     // Get a random off screen position so they appear in diff. places
-    this.x = (Math.floor((Math.random() * offscreenX) + 1));
+    this.x = eOffStart[Math.floor((Math.random()*eOffStart.length))];
 };
 
 // Update the enemy's position, required method for game
@@ -67,7 +88,7 @@ Enemy.prototype.update = function(dt) {
         this.x = this.x + (eSpeed*dt);    
     } else {
         // Set x back off screen to the left and randomise the row it appears on
-        this.x = (Math.floor((Math.random() * offscreenX) + 1));
+        this.x =  eOffStart[Math.floor((Math.random() * eOffStart.length))];
         this.y = eRowStarts[Math.floor((Math.random() * 4))];
     };
   
@@ -83,11 +104,16 @@ Enemy.prototype.render = function(enemy) {
 // Players stuff starts ---------------------------------------------------------------------------------------------
 
 var Player = function() {
-
-    this.sprite = 'images/char-boy.png';
+    // Set image and position
+    this.sprite = chosenSprite;  // Sprite chosen from selection screen
     this.x = xPlayerStart;
     this.y = yPlayerStart;
-    this.keyPress = ''; 
+    this.keyPress = '';
+    
+    // Set game score details
+    this.crossings = 0;
+    this.lives = 5;
+    this.score = 0;
 };
 
 
@@ -117,29 +143,64 @@ Player.prototype.update = function () {
               this.x = this.x+(pColMove/speedMove);
            };
         break;
+    };
 
+    // Key pressed so we can increment player score because they made a move
+    // You should only score if you are moving forward/backward 
+    // And if you are moving left or right in the enemy zone
+    // Base score multiplies by number of crossings
+    // If you make a successful crossing then the multiplier should increase by 1
+    
+    switch (this.keyPress) {
+        case 'up':
+        case 'down':
+            if (this.y > 31 && this.y < 322) {
+                this.score = this.score + (moveScore * (this.crossings+1));
+            };
+        break;
+        case 'right':
+        case 'left':
+            if (this.y > 31 && this.y < 322) {
+                 this.score = this.score + (moveScore * (this.crossings+1));
+             };
+        break;
     };
 
     // Reset the keypress so the update doesn't keep moving the player
     this.keyPress = '';
+
+
 };
 
 //Render the player sprite on the board
 Player.prototype.render = function () {
 
-     // Draw the player sprite
-     ctx.drawImage(Resources.get(this.sprite), this.x, this.y);
+    // Draw the player sprite
+    ctx.drawImage(Resources.get(this.sprite), this.x, this.y);
 
-     // Check for collisions as long as there hasn't already been one
-     checkCollisions(player);
+    // Check for collisions
+    checkCollisions(player);
+
+    // Check for a valid crossing
+    checkCrossings(player);
 };
 
 // Receives the player keyboard inputs
 Player.prototype.handleInput = function(keys){
+    
     // Work out the key press and set it for player update to process
     this.keyPress = keys;
+
+    switch(keys) {
+        case 'nine':
+            gameSet = 0;
+        break;
+    };
 };
 
+// Checks whether the player sprite has overlapped with and enemy
+// sprite. If it does it resets the player. If it does not score is
+// added.
 function checkCollisions(player) {
     //Get the current co-ords for the player sprite
     var pX = player.x;
@@ -153,7 +214,6 @@ function checkCollisions(player) {
         var eObj = allEnemies[i];
         eX.push(eObj['x']);
         eY.push(eObj['y']);
-        
     };
     
     // Now let's check for a collision
@@ -177,19 +237,73 @@ function checkCollisions(player) {
             overlap = true;
         };
         
+        // If collision detected reset the sprite, crossings multiplier and start again
         if (overlap) {
-            player.sprite = 'images/rock.png';
-            ctx.drawImage(Resources.get(player.sprite), 200, 100);
-            pauseGame(1000, player);
+            player.keyPress ='';
 
-            gameStartup();            
+            // Sprite death sequence
+            /*
+            player.sprite = 'images/rock.png';
+            ctx.drawImage(Resources.get(player.sprite), player.x, player.y);
+            pauseGame(1000, player);
+            */
+
+            // There's a collision so decrease player lives by 1
+            player.lives = player.lives - 1;
+            // Have we run out of lives if so finish the game
+            if (player.lives==0) {
+                pauseGame(1000, player);
+                // Game has finished so draw end screen and start again
+                gameSet = 2;
+                gameClosure();
+            } else {
+                // Still have lives so just reset player position
+                player.x = xPlayerStart;
+                player.y = yPlayerStart;
+            };
+
+            // Reset crossings to zero because we have collided
+            overlap = false;
+            player.crossings = 0;
+            /*if (player.crossings >= 0) {
+                player.crossings = player.crossings -1;
+            } else {
+                player.crossings = 0;
+            };*/
+
+        } else {
+            // No collision so scoring panel can be updated
+            scoreUpdate(player);
         }
     }
-   
 }
 
-// Players stuff finished ----------------------------------------------------------------------------------------
+// Checks for a valid crossing when the player has reached either safe zone.
+function checkCrossings(player) {
+    
+    // Only mark a good crossing if the player has reached either safe zone.
+    // resetCrossed makes sure that crossings aren't counted when just sitting
+    // in the zone.
+    switch (true) {
+        // Top zone
+        case (player.y < 10):
+            if (resetCrossed==0) {
+                player.crossings = player.crossings + 1;
+                resetCrossed = 1;
+            };
+            break;
+        // Bottom zone
+        case (player.y > 401):
+            if (resetCrossed > 0) {
+                player.crossings = player.crossings + 1;
+                resetCrossed = 0;
+            };
+            break;
+    };
+}
 
+
+// Players stuff finished ----------------------------------------------------------------------------------------
 
 // Now instantiate your objects.
 // Place all enemy objects in an array called allEnemies
@@ -198,32 +312,231 @@ function checkCollisions(player) {
 var player = Player() ;
 var allEnemies = [];
 
-    
 // This listens for key presses and sends the keys to your
 // Player.handleInput() method. You don't need to modify this.
 document.addEventListener('keyup', function(e) {
+    //console.log(e.keyCode);
+    
     var allowedKeys = {
+        13: 'enter',
         37: 'left',
         38: 'up',
         39: 'right',
-        40: 'down'
+        40: 'down',
+        49: 'one',  // used for selection of sprite on load screen
+        50: 'two',  // used for selection of difficulty on load screen
+        57: 'nine'  // used for restart of the whole game
     };
 
-    player.handleInput(allowedKeys[e.keyCode]);
+    // If on the selector screen then handle sprite input
+    // Else handle game play inputs
+    if (gameSet===0){
+        playersprite.handleInput(allowedKeys[e.keyCode]);
+    } else {
+        player.handleInput(allowedKeys[e.keyCode]);    
+    }
+    
 });
 
 // Other functions to help the game start ------------------------------------------------------------------------
-// Sets the game up and allows it to restart
 
+// Sprite to be used as player
+var PlayerSprite = function() {
+    
+    this.x = 101;
+    this.y = 101;
+    this.sprite = 'images/Selector.png';
+    this.alpha = 1;
+};
+
+// Receives input from user to move selector
+PlayerSprite.prototype.handleInput = function(key) {
+
+    switch(key) {
+        case 'left':
+            if (this.x >= 201) {
+                this.x = this.x-100;    
+            };
+        break;
+        case 'right':    
+            if (this.x <= 401) {
+                this.x = this.x+100;    
+            };
+        break;
+        case 'down':
+            // Only allow down press if on the player row
+            if (this.y==101) {
+                this.y = this.y +200;    
+            };
+        break;
+        case 'up':
+            // Only allow down press if on the player row
+            if (this.y==301) {
+                this.y = this.y -200;    
+            };
+        break;
+        case 'one':
+            spriteCoord = this.x;
+            ctx.drawImage(Resources.get('images/Star.png'), this.x, 101);
+            
+        break;
+        case 'two':
+            difficultyCoord = this.x;
+            ctx.drawImage(Resources.get('images/Star.png'), this.x, 101);
+        break;
+        case 'enter':
+            // User happy with choices so commit them
+            // Use the y coord to determine which sprite was chosen
+            switch (spriteCoord) {
+                case 101:
+                    chosenSprite = 'images/char-cat-girl.png';
+                break;
+                case 201:
+                    chosenSprite = 'images/char-horn-girl.png';
+                break;
+                case 301:
+                    chosenSprite = 'images/char-pink-girl.png';
+                break;
+                case 401:
+                    chosenSprite = 'images/char-princess-girl.png';
+                break;
+                case '501':
+                    chosenSprite = 'images/char-boy.png';
+                break;
+                default:
+                    chosenSprite = 'images/char-boy.png';
+                break;
+            };
+
+            switch (difficultyCoord) {
+                case 101:
+                    difficultySetting = 1;
+                break;
+                case 201:
+                    difficultySetting = 2;
+                break;
+                case 301:
+                    difficultySetting = 3;
+                break;
+                case 401:
+                    difficultySetting = 4;
+                break;
+                case '501':
+                    difficultySetting = 5;
+                break;
+                default:
+                    chosenSprite = 'images/char-boy.png';
+                    difficultySetting = 1;
+                break;
+            };
+
+            gameSet = 1;
+            gameStartup();
+
+        break;
+    };
+};
+
+// Renderer for the sprite selection element of load screen
+PlayerSprite.prototype.render = function() {
+    
+    ctx.save();
+    ctx.globalAlpha = this.alpha;
+    ctx.drawImage(Resources.get(this.sprite), this.x, this.y);
+    ctx.restore();
+    
+};
+
+
+// Sets the game up
 function gameStartup() {
 
     allEnemies = [];
     player = new Player;
     overlap = false;
-     for (i=0; i <= eQuantity-1; i++) {
+    player.lives = tLives;
+    player.crossings = 0;
+
+    // Now set the difficulty up based on selection
+    switch (difficultyCoord) {
+        case 101:
+            speedMove = 1;
+            eQuantity = 5;
+            eSpeed = 100;
+        break;
+        case 201:
+            speedMove = 1;
+            eQuantity = 8;
+            eSpeed = 200;
+        break;
+        case 301:
+            speedMove = 2;
+            eQuantity = 6;
+            eSpeed = 250;
+        break;
+        case 401:
+            speedMove = 2;
+            eQuantity = 8;
+            eSpeed = 250;
+        break;
+        case 501:
+            speedMove = 3;
+            eQuantity = 10;
+            eSpeed = 300;
+        break;
+    };
+
+    // Set the base score that gets used based on the difficulty choices
+    // Based on speedMove (player speed 1 to 5), eSpeed (enemy speed 50 to 300), eQuantity (no. of enemies)
+    moveScore = speedMove * (eSpeed/50) * Math.floor(eQuantity/2);
+
+    for (i=0; i <= eQuantity-1; i++) {
         allEnemies.push(new Enemy);
     };
+
+    checkEnemyStartingPositions();
+    
+    
 };
+
+// When player lives have run out close the game
+function gameClosure() {
+    //pauseGame(10000,player);
+    //gameSet=0;
+}
+
+// All enemies have been created time to check starting positions.
+// I don't want any overlap. If they are reset an enemy starting position
+function checkEnemyStartingPositions() {
+
+    var eX = [];
+    var eY = [];
+    var eObj = [];
+    var xDiff = 0;
+    
+    // Put each enemy into an object and collect x and y coords
+    for (i=0; i <= eQuantity-1; i++) {
+        eObj = allEnemies[i];
+        eX.push(eObj['x']);
+        eY.push(eObj['y']);
+     };   
+    
+    // Now do the x starting position checking
+    for (i=0; i <= eQuantity-1; i++) {
+
+        for (j=0; j <= eQuantity-1; j++) {
+            //Don't bother checking the same enemy
+            if (i!=j) {
+               // First is this enemy on the same row?
+                if (eY[i] == eY[j]) {
+                    // Simply reset the
+                    allEnemies[i]['x'] = allEnemies[i]['x'] + 101;   
+                    };
+            }; // End if !i==j
+        };  // End for j loop
+    }; // End for i loop
+};
+
 
 // Creates a pause in the game to allow visuals to be shown
 function pauseGame(ms, player) {
@@ -232,17 +545,40 @@ function pauseGame(ms, player) {
     while (new Date() < ms){}
 } 
 
-/* unused so far
-function getCol(spriteX){
-    var xCol;
-    for (i=1; i<=nCols; i++){
-        coord = i * (cWidth/nCols);
-        if (spriteX <= coord) {
-            xCol = i;
-            break;
-        }
-    };
-    return xCol;
+// Draws the score during the game play
+function scoreUpdate(player){
+    
+    // Score draw
+    ctx.fillStyle = 'green';
+    ctx.font = 'bold 14pt Arial';
+    ctx.textAlign = 'center';
+    ctx.fillText(prefixZero(player.score,6), 115, cHeight-28);
+
+    // Draw crossings
+    // Crossings score has to be reduced by 1 as it starts at 1 to ensure the 
+    // score multiplier works
+    ctx.fillStyle = 'green';
+    ctx.font = 'bold 14pt Arial';
+    ctx.textAlign = 'center';
+    ctx.fillText(prefixZero(player.crossings,3), 335, cHeight-28);
+
+    // Draw lives
+    var xCoord = 506;
+    for (j=1; j <= tLives; j++) {
+        if (j<=player.lives) {
+            ctx.drawImage(Resources.get('images/Star-small.png'), xCoord, cHeight-55);    
+        } else {
+            ctx.drawImage(Resources.get('images/Star-small-crossed.png'), xCoord, cHeight-55);
+        };
+        xCoord = xCoord + 20;
+    }
 }
-*/
+
+// Prefix the score with zeros so it looks like a proper score
+function prefixZero(score, nZeros) {
+    var newScore = score+"";
+    while (newScore.length < nZeros) newScore = "0" + newScore;
+    return newScore;
+}
+
 // Other functions to help the game: finish -----------------------------------------------------------------------
