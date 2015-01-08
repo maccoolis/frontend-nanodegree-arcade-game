@@ -99,7 +99,7 @@ var Engine = (function(global) {
             });
             
             player.update();
-        };
+        }
     }
 
     /* This function initially draws the "game level", it will then call
@@ -114,7 +114,6 @@ var Engine = (function(global) {
          */
         
         // Render the game proper when gameSet is 1, if 0 render loadscreen, 2 render close screen
-
         switch (gameSet) {
             case 0:  //load screen
                 renderGameSelections();
@@ -151,14 +150,15 @@ var Engine = (function(global) {
                         ctx.drawImage(Resources.get(rowImages[row]), col * 101, row * 83);
                     }
                 }
-                
+                // Render the score panel at the bottom of the screen
                 renderScorePanel(); 
+                // Render player and enemies
                 renderEntities();
             break;
             case 2:  //close screen
                 renderCloseScreen();
             break;
-        };
+        }
     }
 
     /* This function is called by the render function and is called on each game
@@ -181,6 +181,7 @@ var Engine = (function(global) {
     // The function renders the game selections screen
     function renderGameSelections(){       
         
+        // Title
         ctx.clearRect(0, 0, canvas.width, canvas.height);
         // Title
         ctx.fillStyle = 'green';
@@ -203,6 +204,7 @@ var Engine = (function(global) {
         ctx.drawImage(Resources.get('images/char-pink-girl.png'), 301, 101);
         ctx.drawImage(Resources.get('images/char-princess-girl.png'), 401, 101);
         ctx.drawImage(Resources.get('images/char-boy.png'), 501, 101);
+
         // Draw the difficulty text
         ctx.fillStyle = 'green';
         ctx.font = 'bold 16pt Arial';
@@ -210,7 +212,7 @@ var Engine = (function(global) {
         ctx.fillText('Please choose your difficulty', 332, 311);
         ctx.fillText('Use left and right arrows to highlight difficulty', 352, 331);
         ctx.fillText('Press \'2\' to commit selection', 352, 351);
-        // Draw the difficulty selector
+
         // Draw the difficulty images and number for difficulty
         ctx.fillStyle = 'white';
         ctx.font = 'bold 42pt Arial';
@@ -235,10 +237,13 @@ var Engine = (function(global) {
 
     // This function renders the end screen
     function renderCloseScreen(){
+        // Clear the screen
         ctx.clearRect(0, 0, cWidth, cHeight+100);
         ctx.fillStyle = 'green';
         ctx.font = 'bold 28pt Arial';
         ctx.textAlign = 'center';
+
+        // Title, score and replay
         ctx.fillText('MACCOOL FROGGER', 352, 51);
         ctx.fillText('FINAL SCORE: ', 303, 201);
         ctx.fillText(player.score, 503, 201);
@@ -246,7 +251,6 @@ var Engine = (function(global) {
         ctx.font = 'bold 20pt Arial';
         ctx.fillStyle = 'red';
         ctx.fillText('TO PLAY AGAIN PLEASE PRESS 9', 353, 501);
-
     }
 
     // This function renders the bottom panel for scoring and lives purposes
@@ -308,7 +312,6 @@ var Engine = (function(global) {
         'images/enemy-bug-blue.png',
         'images/enemy-bug-green.png',
         'images/char-boy.png',
-        'images/char-boy-small.png',
         'images/rock.png',
         'images/Star-small.png',
         'images/Star.png',
